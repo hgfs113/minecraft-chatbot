@@ -20,6 +20,8 @@ public class VillagerTalkCommand {
 
     private static final ApiService apiService = new ApiService();
 
+    private static final String TEMP_CONVERSATION_ID = "001";
+
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(
                 literal("vi_talk")
@@ -34,7 +36,7 @@ public class VillagerTalkCommand {
                                     Mymod.LOGGER.info("Villager Talk env: {}", env);
 
                                     // Send a feedback message to the player
-                                    var request = new TalkRequest(message, env);
+                                    var request = new TalkRequest(TEMP_CONVERSATION_ID, message, env);
                                     source.sendFeedback(() -> Text.literal(String.format("Игрок: %s\n", message)), false);
                                     apiService.sendMessage(request, res -> {
                                         Mymod.LOGGER.info("Villager Talk response: {}", res);
