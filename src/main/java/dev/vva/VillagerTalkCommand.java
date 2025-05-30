@@ -35,6 +35,7 @@ public class VillagerTalkCommand {
 
                                     // Send a feedback message to the player
                                     var request = new TalkRequest(message, env);
+                                    source.sendFeedback(() -> Text.literal(String.format("Игрок: %s\n", message)), false);
                                     apiService.sendMessage(request, res -> {
                                         Mymod.LOGGER.info("Villager Talk response: {}", res);
                                         source.sendFeedback(() -> Text.literal(String.format("Житель: %s\n", res)), false);
