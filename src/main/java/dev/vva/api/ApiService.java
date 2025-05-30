@@ -1,7 +1,7 @@
-package dev.vva;
+package dev.vva.api;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import dev.vva.Mymod;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -20,30 +20,20 @@ public class ApiService {
 
     private final String baseUrl = "http://localhost:8080/generate";
 
-    public void sendMessage(String message,  Consumer<String> callback) {
+    public void sendMessage(TalkRequest talkRequest, Consumer<String> callback) {
         CompletableFuture.runAsync(() -> {
             try {
-                var requestBody = new JsonObject();
-                requestBody.addProperty("prompt", message);
-                var requestBodyJson = GSON.toJson(requestBody);
+                var requestBodyJson = GSON.toJson(talkRequest, TalkRequest.class);
                 var request = HttpRequest.newBuilder()
                         .uri(URI.create(baseUrl))
                         .header("Content-Type", "application/json")
-                        .timeout(Duration.ofSeconds(15))
+                        .timeout(Duration.ofSeconds(30))
                         .POST(HttpRequest.BodyPublishers.ofString(requestBodyJson))
                         .build();
 
                 var response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() == 200) {
                     callback.accept(response.body());
-//                    JsonObject jsonResponse = GSON.fromJson(response.body(), JsonObject.class);
-//                    if (jsonResponse.has("response")) {
-//                        String villagerResponse = jsonResponse.get("response").getAsString();
-//                        callback.accept(villagerResponse);
-//                    } else {
-//                        Mymod.LOGGER.error("API response missing 'response' field: {}", response.body());
-//                        callback.accept(null);
-//                    }
                 } else {
                     Mymod.LOGGER.error("API request failed with status code: {}", response.statusCode());
                     callback.accept(null);

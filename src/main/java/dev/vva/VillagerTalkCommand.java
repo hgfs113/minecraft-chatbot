@@ -2,9 +2,16 @@ package dev.vva;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import dev.vva.api.ApiService;
+import dev.vva.api.translate.ru.BiomeTranslator;
+import dev.vva.api.TalkRequest;
+import dev.vva.api.translate.ru.LightLevelTranslator;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
@@ -23,11 +30,12 @@ public class VillagerTalkCommand {
 
                                     // Log the message to console
                                     Mymod.LOGGER.info("Villager Talk: {}", message);
-                                    var env = getEnvironmentInfo(source);
+                                    var env = buildEnvironmentInfo(source);
                                     Mymod.LOGGER.info("Villager Talk env: {}", env);
 
                                     // Send a feedback message to the player
-                                    apiService.sendMessage(message, res -> {
+                                    var request = new TalkRequest(message, env);
+                                    apiService.sendMessage(request, res -> {
                                         Mymod.LOGGER.info("Villager Talk response: {}", res);
                                         source.sendFeedback(() -> Text.literal(String.format("Житель: %s\n", res)), false);
                                     });
@@ -36,9 +44,8 @@ public class VillagerTalkCommand {
         );
     }
 
-    private static String getEnvironmentInfo(ServerCommandSource source) {
-        StringBuilder info = new StringBuilder();
-
+    private static Map<String, String> buildEnvironmentInfo(ServerCommandSource source) {
+        Map<String, String> envInfo = new HashMap<>();
         try {
             // Get the server world
             var world = source.getWorld();
@@ -55,7 +62,7 @@ public class VillagerTalkCommand {
 
             // Get biome information
             var biome = world.getBiome(pos);
-            String biomeName = biome.getKey().map(key -> key.getValue().getPath()).orElse("unknown");
+            var biomeName = biome.getKey().map(key -> key.getValue().getPath()).map(BiomeTranslator::translate).orElse("неизвестно");
 
             // Get weather information
             boolean isRaining = world.isRaining();
@@ -66,39 +73,31 @@ public class VillagerTalkCommand {
             String dayPhase;
 
             if (timeOfDay < 1000) {
-                dayPhase = "Dawn";
+                dayPhase = "рассвет";
             } else if (timeOfDay < 6000) {
-                dayPhase = "Day";
+                dayPhase = "день";
             } else if (timeOfDay < 12000) {
-                dayPhase = "Afternoon";
+                dayPhase = "вечер";
             } else if (timeOfDay < 13000) {
-                dayPhase = "Dusk";
+                dayPhase = "сумерки";
             } else if (timeOfDay < 18000) {
-                dayPhase = "Night";
+                dayPhase = "ночь";
             } else {
-                dayPhase = "Late Night";
+                dayPhase = "поздняя ночь";
             }
 
             // Get light level
             int lightLevel = world.getLightLevel(pos);
 
             // Build the information string
-            info.append("Biome: ").append(biomeName).append(", ");
-            info.append("Weather: ");
-            if (isRaining) {
-                info.append(isThundering ? "Thunderstorm" : "Rain");
-            } else {
-                info.append("Clear");
-            }
-            info.append(", ");
-            info.append("Time: ").append(dayPhase).append(" (").append(timeOfDay).append("), ");
-            info.append("Light Level: ").append(lightLevel);
-
+            envInfo.put("биом", biomeName);
+            envInfo.put("погода", isRaining ? isThundering ? "гроза": "дождь": "ясно");
+            envInfo.put("освещенность", LightLevelTranslator.getLightDescription(lightLevel));
+            envInfo.put("фаза дня", dayPhase);
         } catch (Exception e) {
-            info.append("Error getting environment info: ").append(e.getMessage());
             Mymod.LOGGER.error("Error getting environment info", e);
         }
 
-        return info.toString();
+        return envInfo;
     }
 }
