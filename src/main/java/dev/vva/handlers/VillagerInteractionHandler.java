@@ -26,8 +26,7 @@ public class VillagerInteractionHandler {
     public ActionResult handleVillagerInteraction(World world, PlayerEntity player, VillagerEntity villager, Hand hand) {
         // Your custom logic here
         if (shouldShowCustomInterface(player, villager)) {
-            openCustomScreen(world, player, villager);
-            return ActionResult.SUCCESS; // Prevents default trading GUI
+            return openCustomScreen(world, player, villager);
         }
         return ActionResult.PASS; // Allow normal trading
     }
@@ -36,7 +35,7 @@ public class VillagerInteractionHandler {
         return true;
     }
 
-    private void openCustomScreen(World world, PlayerEntity player, VillagerEntity villager) {
+    private ActionResult openCustomScreen(World world, PlayerEntity player, VillagerEntity villager) {
         if (player instanceof ServerPlayerEntity serverPlayer) {
             // Send custom packet or use built-in screen
             Mymod.LOGGER.info("Interaction has happened");
@@ -53,6 +52,7 @@ public class VillagerInteractionHandler {
 
             });
         }
+        return ActionResult.SUCCESS; // Prevents default trading GUI
     }
 
     public String getVillagerMood(PlayerEntity player, VillagerEntity villager) {
