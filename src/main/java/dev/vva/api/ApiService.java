@@ -45,4 +45,8 @@ public class ApiService {
             }
         });
     }
+
+    public String stubSend(String message) {
+        return "Hi, just a stub response for now";
+    }
 }
