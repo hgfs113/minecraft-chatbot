@@ -1,16 +1,24 @@
 package dev.vva;
 
 import dev.vva.api.ApiService;
+import dev.vva.api.TalkRequest;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.world.World;
+
+import static dev.vva.handlers.HandlerUtils.buildEnvironmentInfo;
+import static dev.vva.handlers.HandlerUtils.getVillagerMood;
 
 public class VillagerConversationScreen extends Screen {
     private final VillagerEntity villager;
+    private final PlayerEntity player;
+    private final World world;
     private final ApiService apiService;
 
     private TextFieldWidget messageInput;
@@ -18,10 +26,12 @@ public class VillagerConversationScreen extends Screen {
     private String villagerResponse = "";
     private boolean isWaitingForResponse = false;
 
-    public VillagerConversationScreen(VillagerEntity villager, ApiService apiService) {
+    public VillagerConversationScreen(VillagerEntity villager, PlayerEntity player, World world) {
         super(Text.literal("Conversation with Villager"));
         this.villager = villager;
-        this.apiService = apiService;
+        this.apiService = new ApiService();
+        this.player = player;
+        this.world = world;
     }
 
     @Override
@@ -35,17 +45,17 @@ public class VillagerConversationScreen extends Screen {
                 this.height / 2 + 20,
                 300,
                 20,
-                Text.literal("Type your message...")
+                Text.literal("Введи сообщение здесь...")
         );
         this.messageInput.setMaxLength(256);
-        this.messageInput.setPlaceholder(Text.literal("Type your message..."));
+        this.messageInput.setPlaceholder(Text.literal("Введи сообщение здесь..."));
         this.addDrawableChild(messageInput);
         this.addSelectableChild(this.messageInput);
         this.setInitialFocus(this.messageInput);
 
         // Send button
         this.sendButton = ButtonWidget.builder(
-                        Text.literal("Send"),
+                        Text.literal("Отправить"),
                         button -> sendMessage()
                 )
                 .dimensions(this.width / 2 - 50, this.height / 2 + 50, 100, 20)
@@ -54,7 +64,7 @@ public class VillagerConversationScreen extends Screen {
 
         // Close button
         ButtonWidget closeButton = ButtonWidget.builder(
-                        Text.literal("Close"),
+                        Text.literal("Закрыть"),
                         button -> this.close()
                 )
                 .dimensions(this.width / 2 - 50, this.height / 2 + 80, 100, 20)
@@ -70,29 +80,28 @@ public class VillagerConversationScreen extends Screen {
 
         this.isWaitingForResponse = true;
         this.sendButton.active = false;
-        this.villagerResponse = "Thinking...";
+        this.villagerResponse = "Думаю...";
 
         // Clear input
         this.messageInput.setText("");
 
         // Call API in a separate thread to avoid blocking UI
-        new Thread(() -> {
-            try {
-                String response = apiService.stubSend(message);
-                // Update UI on main thread
-                this.client.execute(() -> {
-                    this.villagerResponse = response;
-                    this.isWaitingForResponse = false;
-                    this.sendButton.active = true;
-                });
-            } catch (Exception e) {
-                this.client.execute(() -> {
-                    this.villagerResponse = "Error: Could not get response";
-                    this.isWaitingForResponse = false;
-                    this.sendButton.active = true;
-                });
-            }
-        }).start();
+
+        var env = buildEnvironmentInfo(player, world);
+        var request = new TalkRequest(
+                String.valueOf(villager.getId()),
+                message,
+                env,
+                getVillagerMood(player, villager)
+        );
+        apiService.sendMessage(request, response -> {
+            final var m = response == null ? "У меня что-то болит голова, спроси позже" : response;
+            client.execute(() -> {
+                this.villagerResponse = m;
+                this.isWaitingForResponse = false;
+                this.sendButton.active = true;
+            });
+        });
     }
 
     @Override
@@ -109,7 +118,7 @@ public class VillagerConversationScreen extends Screen {
         );
 
         // Villager name
-        Text villagerName = Text.literal("Villager").formatted(Formatting.YELLOW);
+        Text villagerName = Text.literal("Житель").formatted(Formatting.YELLOW);
         context.drawCenteredTextWithShadow(
                 this.textRenderer,
                 villagerName,
@@ -131,14 +140,14 @@ public class VillagerConversationScreen extends Screen {
 
             // Response text (word wrap for long responses)
             Text responseText = Text.literal(villagerResponse).formatted(Formatting.WHITE);
-            context.drawText(
+            context.drawWrappedText(
                     this.textRenderer,
                     responseText,
                     this.width / 2 - 145,
                     this.height / 2 - 15,
                     290,
+                    0xFFFFFF,
                     false
-//                    0xFFFFFF
             );
         }
 

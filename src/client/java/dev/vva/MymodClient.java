@@ -16,8 +16,7 @@ public class MymodClient implements ClientModInitializer {
 			if (entity instanceof VillagerEntity villager && world.isClient) {
 				if (shouldShowCustomInterface(player, villager)) {
 					MinecraftClient client = MinecraftClient.getInstance();
-					ApiService apiService = new ApiService();
-					VillagerConversationScreen screen = new VillagerConversationScreen(villager, apiService);
+					VillagerConversationScreen screen = new VillagerConversationScreen(villager, player, world);
 					client.setScreen(screen);
 					return ActionResult.SUCCESS;
 				}

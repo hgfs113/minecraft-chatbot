@@ -4,6 +4,8 @@ import dev.vva.Mymod;
 import dev.vva.api.translate.ru.BiomeTranslator;
 import dev.vva.api.translate.ru.LightLevelTranslator;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -11,12 +13,19 @@ import net.minecraft.world.World;
 import java.util.HashMap;
 import java.util.Map;
 
+import static net.minecraft.entity.ai.brain.Activity.IDLE;
+import static net.minecraft.entity.ai.brain.Activity.MEET;
+import static net.minecraft.entity.ai.brain.Activity.PANIC;
+import static net.minecraft.entity.ai.brain.Activity.RAID;
+import static net.minecraft.entity.ai.brain.Activity.REST;
+import static net.minecraft.entity.ai.brain.Activity.WORK;
+
 public class HandlerUtils {
 
-    protected static Map<String, String> buildEnvironmentInfo(ServerCommandSource source) {
+    public static Map<String, String> buildEnvironmentInfo(ServerCommandSource source) {
         return buildEnvironmentInfo(source.getEntity(), source.getWorld());
     }
-    protected static Map<String, String> buildEnvironmentInfo(Entity entity, World world) {
+    public static Map<String, String> buildEnvironmentInfo(Entity entity, World world) {
         Map<String, String> envInfo = new HashMap<>();
         try {
             BlockPos pos;
@@ -66,5 +75,31 @@ public class HandlerUtils {
         }
 
         return envInfo;
+    }
+
+
+
+    public static String getVillagerMood(PlayerEntity player, VillagerEntity villager) {
+        // Check if scared (recent damage, zombie nearby)
+        if (villager.getLastAttackedTime() > 0) {
+            return "испуганный";
+        }
+
+        // Check if angry (bad reputation)
+        int reputation = villager.getGossip().getReputationFor(player.getUuid(), p -> true);
+        if (reputation < -15) return "злой";
+        if (reputation > 15) return "счастливый";
+
+        var activity = villager.getBrain().getFirstPossibleNonCoreActivity();
+
+        var activityMap = Map.of(
+                WORK, "сфокусирован",
+                MEET, "социализируется",
+                REST, "отдыхает",
+                PANIC, "паникует",
+                RAID, "боится"
+        );
+        activity.ifPresent(a -> Mymod.LOGGER.info("Current activity: {}", a));
+        return activityMap.getOrDefault(activity.orElse(IDLE), "нейтральный");
     }
 }

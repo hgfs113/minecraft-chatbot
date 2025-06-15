@@ -13,6 +13,7 @@ import net.minecraft.world.World;
 import java.util.Map;
 
 import static dev.vva.handlers.HandlerUtils.buildEnvironmentInfo;
+import static dev.vva.handlers.HandlerUtils.getVillagerMood;
 import static net.minecraft.entity.ai.brain.Activity.IDLE;
 import static net.minecraft.entity.ai.brain.Activity.MEET;
 import static net.minecraft.entity.ai.brain.Activity.PANIC;
@@ -53,29 +54,5 @@ public class VillagerInteractionHandler {
             });
         }
         return ActionResult.SUCCESS; // Prevents default trading GUI
-    }
-
-    public String getVillagerMood(PlayerEntity player, VillagerEntity villager) {
-        // Check if scared (recent damage, zombie nearby)
-        if (villager.getLastAttackedTime() > 0) {
-            return "испуганный";
-        }
-
-        // Check if angry (bad reputation)
-        int reputation = villager.getGossip().getReputationFor(player.getUuid(), p -> true);
-        if (reputation < -15) return "злой";
-        if (reputation > 15) return "счастливый";
-
-        var activity = villager.getBrain().getFirstPossibleNonCoreActivity();
-
-        var activityMap = Map.of(
-                WORK, "сфокусирован",
-                MEET, "социализируется",
-                REST, "отдыхает",
-                PANIC, "паникует",
-                RAID, "боится"
-        );
-        activity.ifPresent(a -> Mymod.LOGGER.info("Current activity: {}", a));
-        return activityMap.getOrDefault(activity.orElse(IDLE), "нейтральный");
     }
 }

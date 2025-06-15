@@ -32,11 +32,11 @@ public class Mymod implements ModInitializer {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
 				VillagerTalkCommand.register(dispatcher));
 
-		UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-			if (entity instanceof VillagerEntity villager && !world.isClient) {
-				return villagerInteractionHandler.handleVillagerInteraction(world, player, villager, hand);
-			}
-			return ActionResult.PASS;
-		});
+//		UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+//			if (entity instanceof VillagerEntity villager && !world.isClient) {
+//				return villagerInteractionHandler.handleVillagerInteraction(world, player, villager, hand);
+//			}
+//			return ActionResult.PASS;
+//		});
 	}
 }
